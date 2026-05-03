@@ -1,0 +1,2 @@
+double benchmarkCPU();
+double benchmarkGPU();
