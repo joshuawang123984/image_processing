@@ -1,29 +1,7 @@
 #include "cpu_filters.h"
+#include "utils.h"
 #include <opencv2/opencv.hpp>
 #include <cmath>
-
-bool isInvalidImage(const cv::Mat &input, bool requiresGrayScale)
-{
-    if (input.empty())
-    {
-        std::cerr << "Input image is empty.\n";
-        return true;
-    }
-
-    if (requiresGrayScale && input.channels() != 1)
-    {
-        std::cerr << "Expected 1-channel grayscale image.\n";
-        return true;
-    }
-
-    if (!requiresGrayScale && input.channels() != 3)
-    {
-        std::cerr << "Expected 3-channel BGR image.\n";
-        return true;
-    }
-
-    return false;
-}
 
 void grayscaleCPU(const cv::Mat &input, cv::Mat &output)
 {

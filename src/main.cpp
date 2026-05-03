@@ -22,13 +22,13 @@ int main()
     grayscaleGPU(input, gpuOutput);
 
     // save outputs to jpg
-    cv::imwrite("cpu_output.jpg", cpuOutput);
-    cv::imwrite("gpu_output.jpg", gpuOutput);
+    saveOutput(cpuOutput, "cpu_output.jpg");
+    saveOutput(cpuOutput, "gpu_output.jpg");
 
     // show images
-    cv::imshow("Original", input);
-    cv::imshow("CPU", cpuOutput);
-    cv::imshow("GPU", gpuOutput);
+    showImage("Original", input);
+    showImage("CPU", cpuOutput);
+    showImage("GPU", gpuOutput);
 
     cv::waitKey(0);
 

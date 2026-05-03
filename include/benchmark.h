@@ -1,2 +1,2 @@
-double benchmarkCPU();
-double benchmarkGPU();
+double benchmarkCPU(const cv::Mat &input, int iterations, void (*filter)(const cv::Mat &, cv::Mat &));
+double benchmarkGPU(const cv::Mat &input, int iterations, void (*filter)(const cv::Mat &, cv::Mat &));
