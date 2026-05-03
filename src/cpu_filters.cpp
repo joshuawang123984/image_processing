@@ -2,7 +2,7 @@
 #include <opencv2/opencv.hpp>
 #include <cmath>
 
-bool isEmpty(const cv::Mat &input)
+bool isInvalidImage(const cv::Mat &input, bool requiresGrayScale)
 {
     if (input.empty())
     {
@@ -10,7 +10,13 @@ bool isEmpty(const cv::Mat &input)
         return true;
     }
 
-    if (input.channels() != 3)
+    if (requiresGrayScale && input.channels() != 1)
+    {
+        std::cerr << "Expected 1-channel grayscale image.\n";
+        return true;
+    }
+
+    if (!requiresGrayScale && input.channels() != 3)
     {
         std::cerr << "Expected 3-channel BGR image.\n";
         return true;
@@ -21,7 +27,7 @@ bool isEmpty(const cv::Mat &input)
 
 void grayscaleCPU(const cv::Mat &input, cv::Mat &output)
 {
-    if (isEmpty(input))
+    if (isInvalidImage(input, false))
     {
         return;
     }
@@ -42,7 +48,7 @@ void grayscaleCPU(const cv::Mat &input, cv::Mat &output)
 
 void gaussianBlurCPU(const cv::Mat &input, cv::Mat &output, int kernelSize)
 {
-    if (isEmpty(input))
+    if (isInvalidImage(input, false))
     {
         return;
     }
@@ -53,7 +59,7 @@ void gaussianBlurCPU(const cv::Mat &input, cv::Mat &output, int kernelSize)
         return;
     }
 
-    output = cv::Mat(input.rows, input.cols, CV_8UC1);
+    output = cv::Mat(input.rows, input.cols, CV_8UC3);
     int radius = kernelSize / 2;
 
     for (int r = 0; r < input.rows; ++r)
@@ -106,7 +112,6 @@ void gaussianBlurCPU(const cv::Mat &input, cv::Mat &output, int kernelSize)
             blurPixel[0] = static_cast<unsigned char>(blueSum / totalWeight);
             blurPixel[1] = static_cast<unsigned char>(greenSum / totalWeight);
             blurPixel[2] = static_cast<unsigned char>(redSum / totalWeight);
-            unsigned char blur = {blueSum, greenSum, redSum};
             output.at<cv::Vec3b>(r, c) = blurPixel;
         }
     }
@@ -114,8 +119,38 @@ void gaussianBlurCPU(const cv::Mat &input, cv::Mat &output, int kernelSize)
 
 void sobelCPU(const cv::Mat &input, cv::Mat &output)
 {
-    if (isEmpty(input))
+    if (isInvalidImage(input, true))
     {
         return;
+    }
+
+    output = cv::Mat(input.rows, input.cols, CV_8UC1, cv::Scalar(0));
+    // 3x3 kernels
+    int Gx[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
+    int Gy[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
+
+    for (int r = 1; r < input.rows - 1; ++r)
+    {
+        for (int c = 1; c < input.cols - 1; ++c)
+        {
+            int sumX = 0;
+            int sumY = 0;
+
+            // for 3 x 3 kernels
+            for (int i = -1; i < 2; ++i)
+            {
+                for (int j = -1; j < 2; ++j)
+                {
+                    unsigned char pixel = input.at<unsigned char>(r + i, c + j);
+                    sumX += pixel * Gx[i + 1][j + 1];
+                    sumY += pixel * Gy[i + 1][j + 1];
+                }
+            }
+
+            int magnitude = static_cast<int>(std::sqrt(sumX * sumX + sumY * sumY));
+            magnitude = std::min(255, magnitude);
+
+            output.at<unsigned char>(r, c) = static_cast<unsigned char>(magnitude);
+        }
     }
 }
