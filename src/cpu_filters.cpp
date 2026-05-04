@@ -74,8 +74,10 @@ void gaussianBlurCPU(const cv::Mat &input, cv::Mat &output, int kernelSize)
                     }
 
                     cv::Vec3b pixel = input.at<cv::Vec3b>(r + i, c + j);
-                    // not really a gaussian formula but whatever
-                    float coeff = 1.0f / (std::abs(i) * std::abs(j) + 1);
+
+                    // gaussian blur
+                    float sigma = kernelSize / 6.0f;
+                    float coeff = std::exp(-(i * i + j * j) / (2 * sigma * sigma));
 
                     blueSum += pixel[0] * coeff;
                     greenSum += pixel[1] * coeff;

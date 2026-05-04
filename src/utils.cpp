@@ -32,6 +32,7 @@ void checkCudaError(cudaError_t err, const char *msg)
         std::cerr << msg << ": "
                   << cudaGetErrorString(err)
                   << std::endl;
+        exit(1);
     }
 }
 
