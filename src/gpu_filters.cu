@@ -7,6 +7,8 @@
 #include <iostream>
 
 #define TILE 16
+__constant__ int Gx[9] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
+__constant__ int Gy[9] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
 
 __global__ void grayscaleKernel(const unsigned char *input, unsigned char *output, int width, int height, int channels)
 {
@@ -67,27 +69,56 @@ __global__ void gaussianBlurKernel(const unsigned char *input, unsigned char *ou
                 break;
             }
 
-            int idx = ((y + i) * width + (x + j)) * channels;
+            int curr_idx = ((y + i) * width + (x + j)) * channels;
             // gaussian blur
             float sigma = kernelSize / 6.0f;
             float coeff = std::exp(-(i * i + j * j) / (2 * sigma * sigma));
 
-            blueSum += input[idx + 0] * coeff;
-            greenSum += pixel[idx + 1] * coeff;
-            redSum += pixel[idx + 2] * coeff;
+            blueSum += input[curr_idx + 0] * coeff;
+            greenSum += pixel[curr_idx + 1] * coeff;
+            redSum += pixel[curr_idx + 2] * coeff;
 
             totalWeight += coeff;
         }
     }
 
-    int outIdx = (y * width + x) * channels);
-
-    output[outIdx + 0] = (unsigned char)(blueSum / totalWeight);
-    output[outIdx + 1] = (unsigned char)(greenSum / totalWeight);
-    output[outIdx + 2] = (unsigned char)(redSum / totalWeight);
+    output[idx + 0] = (unsigned char)(blueSum / totalWeight);
+    output[idx + 1] = (unsigned char)(greenSum / totalWeight);
+    output[idx + 2] = (unsigned char)(redSum / totalWeight);
 }
-__global__ void sobelKernel(const unsigned char *input, unsigned char *output, int width, int height, int channels)
+
+__global__ void sobelKernel(const unsigned char *input, unsigned char *output, int width, int height)
 {
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (x >= width || y >= height)
+        return;
+
+    int idx = y * width + x;
+
+    int sumX = 0;
+    int sumY = 0;
+
+    // for 3 x 3 kernels
+    for (int i = -1; i < 2; ++i)
+    {
+        for (int j = -1; j < 2; ++j)
+        {
+
+            if (y + i < 0 || y + i >= height || x + j < 0 || x + j >= width)
+                continue;
+
+            int curr_idx = (y + i) * width + (x + j);
+
+            sumX += input[curr_idx] * Gx[(i + 1) * 3 + (j + 1)];
+            sumY += input[curr_idx] * Gy[(i + 1) * 3 + (j + 1)];
+        }
+    }
+
+    int magnitude = (int)sqrtf((float)(sumX * sumX + sumY * sumY));
+    magnitude = magnitude > 255 ? 255 : magnitude;
+    output[idx] = (unsigned char)magnitude;
 }
 
 void grayscaleGPU(const cv::Mat &input, cv::Mat &output)
