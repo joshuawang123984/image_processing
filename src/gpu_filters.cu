@@ -47,36 +47,25 @@ __global__ void gaussianBlurKernel(const unsigned char *input, unsigned char *ou
 
     for (int i = -radius; i < radius + 1; ++i)
     {
-        if (y + i < 0)
+        if (y + i < 0 || y + i >= height)
         {
             continue;
         }
 
-        if (y + i >= input.rows)
-        {
-            break;
-        }
-
         for (int j = -radius; j < radius + 1; ++j)
         {
-            if (x + j < 0)
+            if (x + j < 0 || x + j >= width)
             {
                 continue;
             }
 
-            if (x + j >= input.cols)
-            {
-                break;
-            }
-
             int curr_idx = ((y + i) * width + (x + j)) * channels;
             // gaussian blur
-            float sigma = kernelSize / 6.0f;
-            float coeff = std::exp(-(i * i + j * j) / (2 * sigma * sigma));
+            float coeff = expf(-(i * i + j * j) / (2 * sigma * sigma));
 
             blueSum += input[curr_idx + 0] * coeff;
-            greenSum += pixel[curr_idx + 1] * coeff;
-            redSum += pixel[curr_idx + 2] * coeff;
+            greenSum += input[curr_idx + 1] * coeff;
+            redSum += input[curr_idx + 2] * coeff;
 
             totalWeight += coeff;
         }
@@ -127,25 +116,81 @@ void grayscaleGPU(const cv::Mat &input, cv::Mat &output)
     unsigned char *d_input;
     unsigned char *d_output;
 
+    output = cv::Mat(input.rows, input.cols, CV_8UC1);
+
     int inputSize = input.rows * input.cols * input.channels();
     int outputSize = input.rows * input.cols;
 
-    cudaMalloc(&d_input, input_size);
+    cudaMalloc(&d_input, inputSize);
     cudaMalloc(&d_output, outputSize);
 
     cudaMemcpy(d_input, input.data, inputSize, cudaMemcpyHostToDevice);
 
-    dim3 threads(16, 16);
-    dim3 blocks((input.cols + 15) / 16, (input.rows + 15) / 16);
-    grayscaleKernel<<<blocks, threads>>>(d_input, d_output, input.cols, input.rows, input.channels);
+    dim3 threads(TILE, TILE);
+    dim3 blocks((input.cols - 1) / threads.x + 1, (input.rows - 1) / threads.y + 1);
+    grayscaleKernel<<<blocks, threads>>>(d_input, d_output, input.cols, input.rows, input.channels());
 
-    cudaMemcpy(gpuOutput, d_output, outputSize, cudaMemcpyDeviceToHost);
+    checkCudaError(cudaGetLastError(), "grayscale launch");
+    cudaDeviceSynchronize();
+    checkCudaError(cudaGetLastError(), "grayscale execution");
+
+    cudaMemcpy(output.data, d_output, outputSize, cudaMemcpyDeviceToHost);
     cudaFree(d_input);
     cudaFree(d_output);
 }
 
 void gaussianBlurGPU(const cv::Mat &input, cv::Mat &output, int kernelSize)
 {
+    unsigned char *d_input;
+    unsigned char *d_output;
+
+    output = cv::Mat(input.rows, input.cols, CV_8UC3);
+
+    int inputSize = input.rows * input.cols * input.channels();
+    int outputSize = input.rows * input.cols * input.channels();
+
+    cudaMalloc(&d_input, inputSize);
+    cudaMalloc(&d_output, outputSize);
+
+    cudaMemcpy(d_input, input.data, inputSize, cudaMemcpyHostToDevice);
+
+    dim3 threads(TILE, TILE);
+    dim3 blocks((input.cols - 1) / threads.x + 1, (input.rows - 1) / threads.y + 1);
+    gaussianBlurKernel<<<blocks, threads>>>(d_input, d_output, input.cols, input.rows, input.channels(), kernelSize);
+
+    checkCudaError(cudaGetLastError(), "gaussianblur launch");
+    cudaDeviceSynchronize();
+    checkCudaError(cudaGetLastError(), "gaussianblur execution");
+
+    cudaMemcpy(output.data, d_output, outputSize, cudaMemcpyDeviceToHost);
+    cudaFree(d_input);
+    cudaFree(d_output);
 }
 
-void sobelGPU(const cv::Mat &input, cv::Mat &output) {}
+void sobelGPU(const cv::Mat &input, cv::Mat &output)
+{
+    unsigned char *d_input;
+    unsigned char *d_output;
+
+    output = cv::Mat(input.rows, input.cols, CV_8UC1);
+
+    int inputSize = input.rows * input.cols;
+    int outputSize = input.rows * input.cols;
+
+    cudaMalloc(&d_input, inputSize);
+    cudaMalloc(&d_output, outputSize);
+
+    cudaMemcpy(d_input, input.data, inputSize, cudaMemcpyHostToDevice);
+
+    dim3 threads(TILE, TILE);
+    dim3 blocks((input.cols - 1) / threads.x + 1, (input.rows - 1) / threads.y + 1);
+    sobelKernel<<<blocks, threads>>>(d_input, d_output, input.cols, input.rows);
+
+    checkCudaError(cudaGetLastError(), "sobel launch");
+    cudaDeviceSynchronize();
+    checkCudaError(cudaGetLastError(), "sobel execution");
+
+    cudaMemcpy(output.data, d_output, outputSize, cudaMemcpyDeviceToHost);
+    cudaFree(d_input);
+    cudaFree(d_output);
+}
