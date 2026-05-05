@@ -6,6 +6,8 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 
+#define TILE 16
+
 __global__ void grayscaleKernel(const unsigned char *input, unsigned char *output, int width, int height, int channels)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -25,7 +27,7 @@ __global__ void grayscaleKernel(const unsigned char *input, unsigned char *outpu
 }
 __global__ void gaussianBlurKernel(const unsigned char *input, unsigned char *output, int width, int height, int channels, int kernelSize)
 {
-    __shared__ float data[][];
+
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -84,10 +86,35 @@ __global__ void gaussianBlurKernel(const unsigned char *input, unsigned char *ou
     output[outIdx + 1] = (unsigned char)(greenSum / totalWeight);
     output[outIdx + 2] = (unsigned char)(redSum / totalWeight);
 }
-__global__ void sobelKernel(...)
+__global__ void sobelKernel(const unsigned char *input, unsigned char *output, int width, int height, int channels)
 {
 }
 
 void grayscaleGPU(const cv::Mat &input, cv::Mat &output)
 {
+    // boiler plate for allocating to GPU mem
+    unsigned char *d_input;
+    unsigned char *d_output;
+
+    int inputSize = input.rows * input.cols * input.channels();
+    int outputSize = input.rows * input.cols;
+
+    cudaMalloc(&d_input, input_size);
+    cudaMalloc(&d_output, outputSize);
+
+    cudaMemcpy(d_input, input.data, inputSize, cudaMemcpyHostToDevice);
+
+    dim3 threads(16, 16);
+    dim3 blocks((input.cols + 15) / 16, (input.rows + 15) / 16);
+    grayscaleKernel<<<blocks, threads>>>(d_input, d_output, input.cols, input.rows, input.channels);
+
+    cudaMemcpy(gpuOutput, d_output, outputSize, cudaMemcpyDeviceToHost);
+    cudaFree(d_input);
+    cudaFree(d_output);
 }
+
+void gaussianBlurGPU(const cv::Mat &input, cv::Mat &output, int kernelSize)
+{
+}
+
+void sobelGPU(const cv::Mat &input, cv::Mat &output) {}
