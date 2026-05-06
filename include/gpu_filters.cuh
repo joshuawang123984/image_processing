@@ -5,7 +5,7 @@
 
 void grayscaleKernel(const unsigned char *input, unsigned char *output, int width, int height, int channels);
 void gaussianBlurKernel(const unsigned char *input, unsigned char *output, int width, int height, int channels, int kernelSize);
-void sobelKernel(const unsigned char *input, unsigned char *output, int width, int height, int channels);
+void sobelKernel(const unsigned char *input, unsigned char *output, int width, int height);
 
 void grayscaleGPU(const cv::Mat &input, cv::Mat &output);
 void gaussianBlurGPU(const cv::Mat &input, cv::Mat &output, int kernelSize);

@@ -39,6 +39,7 @@ void gaussianBlurCPU(const cv::Mat &input, cv::Mat &output, int kernelSize)
 
     output = cv::Mat(input.rows, input.cols, CV_8UC3);
     int radius = kernelSize / 2;
+    float sigma = kernelSize / 6.0f;
 
     for (int r = 0; r < input.rows; ++r)
     {
@@ -76,7 +77,6 @@ void gaussianBlurCPU(const cv::Mat &input, cv::Mat &output, int kernelSize)
                     cv::Vec3b pixel = input.at<cv::Vec3b>(r + i, c + j);
 
                     // gaussian blur
-                    float sigma = kernelSize / 6.0f;
                     float coeff = std::exp(-(i * i + j * j) / (2 * sigma * sigma));
 
                     blueSum += pixel[0] * coeff;
