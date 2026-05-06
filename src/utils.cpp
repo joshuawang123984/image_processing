@@ -1,6 +1,6 @@
 #include "utils.h"
 #include <iostream>
-#include <cuda_runtime.h>
+// #include <cuda_runtime.h>
 
 bool isInvalidImage(const cv::Mat &input, bool requiresGrayScale)
 {
@@ -25,16 +25,16 @@ bool isInvalidImage(const cv::Mat &input, bool requiresGrayScale)
     return false;
 }
 
-void checkCudaError(cudaError_t err, const char *msg)
-{
-    if (err != cudaSuccess)
-    {
-        std::cerr << msg << ": "
-                  << cudaGetErrorString(err)
-                  << std::endl;
-        exit(1);
-    }
-}
+// void checkCudaError(cudaError_t err, const char *msg)
+// {
+//     if (err != cudaSuccess)
+//     {
+//         std::cerr << msg << ": "
+//                   << cudaGetErrorString(err)
+//                   << std::endl;
+//         exit(1);
+//     }
+// }
 
 bool compareImages(const cv::Mat &img1, const cv::Mat &img2)
 {

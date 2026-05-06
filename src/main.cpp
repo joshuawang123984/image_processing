@@ -8,27 +8,26 @@
 
 int main()
 {
-    cv::Mat input = cv::imread("input.jpg", cv::IMREAD_COLOR);
+    cv::Mat input = cv::imread("images/input.jpg", cv::IMREAD_COLOR);
 
     if (input.empty())
     {
         std::cerr << "Image failed to load.\n";
         return -1;
     }
-
     cv::Mat cpuOutput, gpuOutput;
 
     grayscaleCPU(input, cpuOutput);
-    grayscaleGPU(input, gpuOutput);
+    // grayscaleGPU(input, gpuOutput);
 
     // save outputs to jpg
     saveOutput(cpuOutput, "cpu_output.jpg");
-    saveOutput(gpuOutput, "gpu_output.jpg");
+    // saveOutput(gpuOutput, "gpu_output.jpg");
 
     // show images
     showImage("Original", input);
     showImage("CPU", cpuOutput);
-    showImage("GPU", gpuOutput);
+    // showImage("GPU", gpuOutput);
 
     cv::waitKey(0);
 
